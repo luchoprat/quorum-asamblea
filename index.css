@@ -418,3 +418,68 @@ tbody tr:hover {
     70% { box-shadow: 0 0 0 10px rgba(16, 185, 129, 0); }
     100% { box-shadow: 0 0 0 0 rgba(16, 185, 129, 0); }
 }
+
+/* Mobile Optimizations */
+@media (max-width: 768px) {
+    .app-container {
+        padding: 1rem;
+    }
+
+    header {
+        margin-bottom: 1.5rem;
+    }
+
+    header h1 {
+        font-size: 1.75rem;
+    }
+
+    .subtitle {
+        font-size: 0.95rem;
+    }
+
+    .panel {
+        padding: 1.25rem;
+    }
+
+    /* Make cloud section forms stack on mobile */
+    .cloud-section .form-group > div {
+        flex-direction: column !important;
+        gap: 0.75rem !important;
+    }
+
+    .cloud-section button, 
+    .cloud-section select, 
+    .cloud-section input {
+        width: 100% !important;
+    }
+
+    /* Adjust list header search box */
+    .list-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 1rem;
+    }
+
+    .search-box {
+        width: 100%;
+    }
+
+    /* Table adjustments */
+    th, td {
+        padding: 0.75rem 0.5rem;
+        font-size: 0.85rem;
+    }
+
+    /* Toggle buttons on mobile */
+    .toggle-btn {
+        padding: 0.5rem;
+        font-size: 0.8rem;
+        width: 100%;
+        text-align: center;
+    }
+
+    /* Progress stats */
+    .progress-stats .value {
+        font-size: 1.25rem;
+    }
+}
