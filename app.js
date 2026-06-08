@@ -256,6 +256,67 @@ document.addEventListener('DOMContentLoaded', () => {
         }
     }
 
+    // --- Active Session Recovery ---
+    function saveActiveState() {
+        const state = {
+            units,
+            targetQuorum,
+            totalPercentagePresent,
+            assemblyType: assemblyTypeSelect.value
+        };
+        localStorage.setItem('activeAssembly', JSON.stringify(state));
+    }
+
+    function checkActiveState() {
+        const saved = localStorage.getItem('activeAssembly');
+        if (saved) {
+            resumeContainer.classList.remove('hidden');
+        }
+    }
+
+    function resumeAssembly() {
+        const saved = localStorage.getItem('activeAssembly');
+        if (!saved) return;
+        
+        try {
+            const state = JSON.parse(saved);
+            units = state.units;
+            targetQuorum = state.targetQuorum;
+            totalPercentagePresent = state.totalPercentagePresent;
+            
+            assemblyTypeSelect.value = state.assemblyType;
+            targetPercentageEl.textContent = targetQuorum === 50.01 ? '>50%' : `${targetQuorum}%`;
+            quorumMarker.style.left = `${Math.min(targetQuorum, 100)}%`;
+            
+            updateDashboard();
+            renderUnitsList(units);
+
+            setupPanel.classList.remove('active');
+            setupPanel.classList.add('hidden');
+            attendancePanel.classList.remove('hidden');
+            attendancePanel.classList.add('active');
+        } catch(e) {
+            console.error("Error resuming state", e);
+        }
+    }
+
+    // --- Cloud Functions ---
+    async function loadCloudLists() {
+        try {
+            const snapshot = await db.collection('condominios').get();
+            cloudSelect.innerHTML = '<option value="">Selecciona un condominio...</option>';
+            snapshot.forEach(doc => {
+                const opt = document.createElement('option');
+                opt.value = doc.id;
+                opt.textContent = doc.id;
+                cloudSelect.appendChild(opt);
+            });
+        } catch(e) {
+            console.error("Error loading lists", e);
+            cloudSelect.innerHTML = '<option value="">Error cargando listas</option>';
+        }
+    }
+
     // --- Event Listeners ---
     startBtn.addEventListener('click', initAttendance);
     
