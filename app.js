@@ -1,4 +1,16 @@
 document.addEventListener('DOMContentLoaded', () => {
+    // --- Firebase Initialization ---
+    const firebaseConfig = {
+      apiKey: "AIzaSyCHyai2btBespTCDHTTpLSGDiM7omlbPKg",
+      authDomain: "quorum-asambleas.firebaseapp.com",
+      projectId: "quorum-asambleas",
+      storageBucket: "quorum-asambleas.firebasestorage.app",
+      messagingSenderId: "584244044765",
+      appId: "1:584244044765:web:c6864d1ddf0c6bde3dcc34"
+    };
+    firebase.initializeApp(firebaseConfig);
+    const db = firebase.firestore();
+
     // --- DOM Elements ---
     // Setup Panel
     const setupPanel = document.getElementById('setup-panel');
@@ -6,6 +18,17 @@ document.addEventListener('DOMContentLoaded', () => {
     const csvInput = document.getElementById('csv-input');
     const startBtn = document.getElementById('start-btn');
     const setupError = document.getElementById('setup-error');
+    
+    // Cloud Elements
+    const cloudSelect = document.getElementById('cloud-select');
+    const cloudLoadBtn = document.getElementById('cloud-load-btn');
+    const cloudDeleteBtn = document.getElementById('cloud-delete-btn');
+    const cloudSaveName = document.getElementById('cloud-save-name');
+    const cloudSaveBtn = document.getElementById('cloud-save-btn');
+    
+    // Resume Elements
+    const resumeContainer = document.getElementById('resume-container');
+    const resumeBtn = document.getElementById('resume-btn');
 
     // Attendance Panel
     const attendancePanel = document.getElementById('attendance-panel');
@@ -104,6 +127,7 @@ document.addEventListener('DOMContentLoaded', () => {
             attendancePanel.classList.remove('hidden');
             attendancePanel.classList.add('active');
 
+            saveActiveState();
         } catch (error) {
             showError(error.message);
         }
@@ -115,6 +139,7 @@ document.addEventListener('DOMContentLoaded', () => {
             unit.present = !unit.present;
             updateDashboard();
             renderUnitsList(units); // Re-render to update UI, could be optimized
+            saveActiveState();
         }
     }
 
@@ -226,6 +251,8 @@ document.addEventListener('DOMContentLoaded', () => {
             units = [];
             totalPercentagePresent = 0;
             searchInput.value = '';
+            localStorage.removeItem('activeAssembly');
+            resumeContainer.classList.add('hidden');
         }
     }
 
@@ -238,6 +265,78 @@ document.addEventListener('DOMContentLoaded', () => {
 
     downloadBtn.addEventListener('click', downloadRecord);
     resetBtn.addEventListener('click', resetApp);
+    resumeBtn.addEventListener('click', resumeAssembly);
+    
+    cloudSaveBtn.addEventListener('click', async () => {
+        const name = cloudSaveName.value.trim();
+        const csv = csvInput.value.trim();
+        if(!name || !csv) {
+            alert('Por favor ingresa un nombre y pega los datos CSV abajo antes de guardar.');
+            return;
+        }
+        
+        cloudSaveBtn.textContent = 'Guardando...';
+        cloudSaveBtn.disabled = true;
+        
+        try {
+            parseCSV(csv); // Verify format
+            await db.collection('condominios').doc(name).set({
+                csvData: csv,
+                updatedAt: firebase.firestore.FieldValue.serverTimestamp()
+            });
+            alert('Lista guardada exitosamente en la nube.');
+            cloudSaveName.value = '';
+            loadCloudLists();
+        } catch(e) {
+            alert('Error: ' + e.message);
+        } finally {
+            cloudSaveBtn.textContent = 'Guardar';
+            cloudSaveBtn.disabled = false;
+        }
+    });
+
+    cloudLoadBtn.addEventListener('click', async () => {
+        const selectedId = cloudSelect.value;
+        if(!selectedId) {
+            alert('Por favor selecciona una lista.');
+            return;
+        }
+        cloudLoadBtn.textContent = '...';
+        try {
+            const doc = await db.collection('condominios').doc(selectedId).get();
+            if(doc.exists) {
+                csvInput.value = doc.data().csvData;
+            }
+        } catch(e) {
+            alert('Error cargando la lista.');
+        } finally {
+            cloudLoadBtn.textContent = 'Cargar';
+        }
+    });
+
+    cloudDeleteBtn.addEventListener('click', async () => {
+        const selectedId = cloudSelect.value;
+        if(!selectedId) {
+            alert('Por favor selecciona una lista para eliminar.');
+            return;
+        }
+        if(confirm(`¿Estás seguro de eliminar "${selectedId}" de la nube?`)) {
+            cloudDeleteBtn.disabled = true;
+            try {
+                await db.collection('condominios').doc(selectedId).delete();
+                alert('Eliminado exitosamente.');
+                loadCloudLists();
+                csvInput.value = '';
+            } catch(e) {
+                alert('Error al eliminar.');
+            } finally {
+                cloudDeleteBtn.disabled = false;
+            }
+        }
+    });
+    
+    checkActiveState();
+    loadCloudLists();
     
     // Auto-fill example data on double click of textarea for testing
     csvInput.addEventListener('dblclick', () => {
